@@ -7,6 +7,4 @@ publish = false
 [dependencies]
 deno_console = "0.98"
 deno_core = "0.180"
-env_logger = "0.10"
-log = "0.4"
 tokio = { version = "1", features = ["full"] }

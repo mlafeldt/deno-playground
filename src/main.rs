@@ -1,34 +1,39 @@
 use std::env;
 use std::rc::Rc;
 
-use deno_core::{anyhow::Result, resolve_path, FsModuleLoader, JsRuntime, RuntimeOptions};
-use log::debug;
+use deno_core::{anyhow::Result, resolve_path, v8, FsModuleLoader, JsRuntime, RuntimeOptions};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::Builder::from_env(
-        env_logger::Env::default()
-            .default_filter_or(log::Level::Info.to_level_filter().to_string()),
-    )
-    .try_init()?;
+    let cwd = env::current_dir()?;
+    let module_path = env::args().nth(1).unwrap_or_else(|| "hello.js".to_string());
+    let module_spec = resolve_path(&module_path, &cwd)?;
+    dbg!(module_path);
+
+    let memory_limit = 100 * 1024 * 1024;
 
     let mut runtime = JsRuntime::new(RuntimeOptions {
         module_loader: Some(Rc::new(FsModuleLoader)),
+        create_params: Some(v8::CreateParams::default().heap_limits(0, memory_limit)),
         ..Default::default()
     });
 
-    let cwd = env::current_dir()?;
-    let module_spec = resolve_path("code.js", &cwd)?;
+    // Terminate isolate when approaching memory limit
+    let cb_handle = runtime.v8_isolate().thread_safe_handle();
+    runtime.add_near_heap_limit_callback(move |current_limit, _initial_limit| {
+        dbg!(current_limit);
+        cb_handle.terminate_execution();
+        current_limit * 2
+    });
+
     let module_id = runtime.load_main_module(&module_spec, None).await?;
 
     let mut receiver = runtime.mod_evaluate(module_id);
     tokio::select! {
-      // Not using biased mode leads to non-determinism for relatively simple
-      // programs.
       biased;
 
       maybe_result = &mut receiver => {
-        debug!("received module evaluate {:#?}", maybe_result);
+        dbg!(&maybe_result);
         maybe_result.expect("Module evaluation result not provided.")
       }
 
