@@ -9,3 +9,9 @@ clap = { version = "4", features = ["derive"] }
 deno_console = "0.98"
 deno_core = "0.180"
 tokio = { version = "1", features = ["full"] }
+
+[profile.release]
+codegen-units = 1
+incremental = true
+lto = true
+opt-level = 3
