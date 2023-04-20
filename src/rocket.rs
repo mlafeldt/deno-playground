@@ -7,7 +7,7 @@ use rocket::{http::Status, launch, post, response::status, routes};
 #[post("/<name>")]
 async fn exec(name: &str) -> status::Custom<String> {
     let cwd = env::current_dir().unwrap();
-    let module_spec = resolve_path(&format!("{name}.js"), &cwd).unwrap();
+    let module_spec = resolve_path(&format!("js/{name}.js"), &cwd).unwrap();
 
     let memory_limit = 100 * 1024 * 1024;
     let _timeout = tokio::time::Duration::from_millis(3000);
