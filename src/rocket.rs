@@ -1,16 +1,26 @@
 use std::env;
 use std::rc::Rc;
 
+use clap::Parser;
 use deno_core::{resolve_path, v8, FsModuleLoader, JsRuntime, RuntimeOptions};
-use rocket::{http::Status, launch, post, response::status, routes};
+use rocket::{http::Status, launch, post, response::status, routes, State};
+
+#[derive(Parser, Debug)]
+struct Args {
+    #[arg(short, long, default_value_t = 100, value_name = "MiB")]
+    memory_limit: usize,
+
+    #[arg(short, long, default_value_t = 3000, value_name = "ms")]
+    timeout: u64,
+}
 
 #[post("/<name>")]
-async fn exec(name: &str) -> status::Custom<String> {
+async fn exec(name: &str, args: &State<Args>) -> status::Custom<String> {
     let cwd = env::current_dir().unwrap();
     let module_spec = resolve_path(&format!("js/{name}.js"), &cwd).unwrap();
 
-    let memory_limit = 100 * 1024 * 1024;
-    let _timeout = tokio::time::Duration::from_millis(3000);
+    let memory_limit = args.memory_limit * 1024 * 1024;
+    let _timeout = tokio::time::Duration::from_millis(args.timeout);
 
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -67,5 +77,5 @@ async fn exec(name: &str) -> status::Custom<String> {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![exec])
+    rocket::build().manage(Args::parse()).mount("/", routes![exec])
 }
