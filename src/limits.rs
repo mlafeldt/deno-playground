@@ -7,7 +7,7 @@ use tokio::time;
 
 #[derive(Parser, Debug)]
 struct Args {
-    #[arg(default_value = "hello.js")]
+    #[arg(default_value = "js/hello.js")]
     module_path: std::path::PathBuf,
 
     #[arg(short, long, default_value_t = 100, value_name = "MiB")]
