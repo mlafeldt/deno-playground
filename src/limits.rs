@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use clap::Parser;
 use deno_core::{anyhow::Result, resolve_path, v8, FsModuleLoader, JsRuntime, RuntimeOptions};
-use tokio::time;
+use tokio::time::Duration;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
     let module_spec = resolve_path(args.module_path.to_str().unwrap(), &cwd)?;
 
     let memory_limit = args.memory_limit * 1024 * 1024;
-    let timeout = time::Duration::from_millis(args.timeout);
+    let timeout = Duration::from_millis(args.timeout);
 
     let mut runtime = JsRuntime::new(RuntimeOptions {
         module_loader: Some(Rc::new(FsModuleLoader)),
