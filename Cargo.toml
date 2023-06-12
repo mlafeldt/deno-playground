@@ -14,10 +14,11 @@ path = "src/rocket.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-deno_console = "0.105.0"
-deno_core = "0.187.0"
 rocket = "=0.5.0-rc.3"
 tokio = { version = "1", features = ["full"] }
+# Deno v1.34
+deno_core = "0.190.0"
+deno_console = "0.108.0"
 
 [profile.release]
 codegen-units = 1
