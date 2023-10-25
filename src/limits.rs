@@ -2,7 +2,11 @@ use std::env;
 use std::rc::Rc;
 
 use clap::Parser;
-use deno_core::{anyhow::Result, resolve_path, v8, FsModuleLoader, JsRuntime, RuntimeOptions};
+use deno_runtime::{
+    deno_core::{anyhow::Result, resolve_path, v8, FsModuleLoader},
+    permissions::PermissionsContainer,
+    worker::{MainWorker, WorkerOptions},
+};
 use tokio::time::Duration;
 
 #[derive(Parser, Debug)]
@@ -23,27 +27,31 @@ async fn main() -> Result<()> {
 
     println!("Running {}", args.module_path.display());
     let cwd = env::current_dir()?;
-    let module_spec = resolve_path(args.module_path.to_str().unwrap(), &cwd)?;
+    let main_module = resolve_path(args.module_path.to_str().unwrap(), &cwd)?;
 
     let memory_limit = args.memory_limit * 1024 * 1024;
     let timeout = Duration::from_millis(args.timeout);
 
-    let mut runtime = JsRuntime::new(RuntimeOptions {
-        module_loader: Some(Rc::new(FsModuleLoader)),
+    let options = WorkerOptions {
+        module_loader: Rc::new(FsModuleLoader),
         create_params: Some(v8::CreateParams::default().heap_limits(0, memory_limit)),
         ..Default::default()
-    });
+    };
+    let mut worker =
+        MainWorker::bootstrap_from_options(main_module.clone(), PermissionsContainer::allow_all(), options);
 
     // Terminate isolate when approaching memory limit
-    let isolate_handle = runtime.v8_isolate().thread_safe_handle();
-    runtime.add_near_heap_limit_callback(move |current_limit, _initial_limit| {
-        println!("Terminating isolate near memory limit (current={current_limit} max={memory_limit})");
-        isolate_handle.terminate_execution();
-        current_limit * 2
-    });
+    let isolate_handle = worker.js_runtime.v8_isolate().thread_safe_handle();
+    worker
+        .js_runtime
+        .add_near_heap_limit_callback(move |current_limit, _initial_limit| {
+            println!("Terminating isolate near memory limit (current={current_limit} max={memory_limit})");
+            isolate_handle.terminate_execution();
+            current_limit * 2
+        });
 
     // Terminate isolate after timeout
-    let isolate_handle = runtime.v8_isolate().thread_safe_handle();
+    let isolate_handle = worker.js_runtime.v8_isolate().thread_safe_handle();
     tokio::spawn(async move {
         tokio::select! {
             _ = tokio::time::sleep(timeout) => {
@@ -53,21 +61,8 @@ async fn main() -> Result<()> {
         }
     });
 
-    let module_id = runtime.load_main_module(&module_spec, None).await?;
-    let mut receiver = runtime.mod_evaluate(module_id);
+    worker.execute_main_module(&main_module).await?;
+    worker.run_event_loop(false).await?;
 
-    tokio::select! {
-      biased;
-
-      maybe_result = &mut receiver => {
-        println!("Result = {maybe_result:#?}");
-        maybe_result.expect("Module evaluation result not provided.")
-      }
-
-      event_loop_result = runtime.run_event_loop(false) => {
-        event_loop_result?;
-        let maybe_result = receiver.await;
-        maybe_result.expect("Module evaluation result not provided.")
-      }
-    }
+    Ok(())
 }

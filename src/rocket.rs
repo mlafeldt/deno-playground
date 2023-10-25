@@ -3,7 +3,9 @@ use std::rc::Rc;
 use std::thread;
 
 use clap::Parser;
-use deno_core::{anyhow::Result, resolve_path, v8, FsModuleLoader, JsRuntime, ModuleSpecifier, RuntimeOptions};
+use deno_runtime::deno_core::{
+    anyhow::Result, resolve_path, v8, FsModuleLoader, JsRuntime, ModuleSpecifier, RuntimeOptions,
+};
 use rocket::{http::Status, launch, post, response::status, routes, State};
 use tokio::time::Duration;
 

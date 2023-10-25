@@ -1,1 +1,1 @@
-Deno.core.print("Hello\n")
+setTimeout(() => console.log("hello"), 500)

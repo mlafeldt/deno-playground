@@ -18,8 +18,7 @@ clap = { version = "4", features = ["derive"] }
 rocket = "=0.5.0-rc.3"
 tokio = { version = "1", features = ["full"] }
 # Deno v1.37
-deno_core = "0.222.0"
-deno_console = "0.121.0"
+deno_runtime = "0.129.0"
 
 [profile.release]
 codegen-units = 1
