@@ -1,10 +1,10 @@
-# deno-limits
+# Deno Playground
 
-This repo explores the implementation of resource limits (max memory and max duration) of V8 isolates managed by Deno.
+## Resource limits
 
-The code was inspired by https://github.com/supabase/edge-runtime
+Explores the implementation of resource limits (max memory and max duration) of V8 isolates managed by Deno, inspired by <https://github.com/supabase/edge-runtime>.
 
-## CLI example
+CLI example:
 
 ```console
 cargo run --bin limits -- ./js/hello.js
@@ -12,7 +12,7 @@ cargo run --bin limits -- ./js/timeout.js
 cargo run --bin limits -- ./js/oom.js
 ```
 
-## Rocket server example
+Rocket server example:
 
 ```console
 cargo run --bin rocket
